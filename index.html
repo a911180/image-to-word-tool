@@ -54,8 +54,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
 #preview.stale{outline:2px dashed #d49a23;outline-offset:-3px}
 .page{
  width:100%;max-width:390px;aspect-ratio:210/297;background:#fff;
- margin:0 auto 14px;padding:3%;box-shadow:0 1px 5px #ccd2dc;
- display:flex;flex-direction:column;gap:2%;overflow:hidden
+ margin:0 auto 14px;padding:2%;box-shadow:0 1px 5px #ccd2dc;
+ display:flex;flex-direction:column;gap:1%;overflow:hidden
 }
 .page-label{font-size:10px;color:#687385;text-align:center;flex-shrink:0}
 .preview-image{
@@ -69,7 +69,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 #rightPanel{min-width:0;width:100%;overflow-x:hidden}
 #rightPanel>*{min-width:0;max-width:100%;flex-shrink:0}
-#rightPanel .small{overflow-wrap:anywhere}
 #filename{
  display:block;width:100%;min-width:0;max-width:100%;height:42px;
  margin-top:6px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;
@@ -91,7 +90,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
   padding:12px 14px 28px 12px
  }
  #rightPanel>*{width:100%;max-width:100%;min-width:0}
- #rightPanel button{flex-shrink:0}
  #downloadArea{padding-bottom:8px}
 }
 @media(max-width:1100px) and (min-width:901px){
@@ -142,13 +140,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <section class="panel" id="rightPanel">
  <h3>③ 產生與下載 Word</h3>
  <div class="filebox">
-  <div><b>頁面：</b>直式 A4</div>
+  <div><b>頁面：</b>直式 A4、窄邊界</div>
   <div><b>格式：</b>Word DOCX</div>
   <div><b>分頁：</b>第 1 張獨立，其餘每頁 2 張</div>
-  <div><b>圖片：</b>保持比例、不裁切</div>
-  <div><b>位置：</b>每頁圖片水平、垂直置中</div>
+  <div><b>圖片：</b>盡量放大、保持比例、不裁切</div>
+  <div><b>位置：</b>每張圖片水平、垂直置中</div>
  </div>
- <p class="small">調整順序後，請先更新預覽，再產生 Word。圖片不會刻意降低解析度。</p>
+ <p class="small">圖片會依比例放大至可用區域，不會拉伸或裁掉邊緣。圖片本身的解析度仍以原始檔案為準。</p>
  <button id="makeBtn" class="primary">產生 Word 文件</button>
  <div id="makeStatus" class="status">⚪ 等待轉換</div>
  <progress id="progress" max="100" value="0"></progress>
@@ -164,10 +162,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </main>
 
 <script>
-const {
- Document,Packer,Paragraph,ImageRun,PageBreak,AlignmentType,
- Table,TableRow,TableCell,WidthType,VerticalAlign,BorderStyle,HeightRule
-}=window.docx;
+const {Document,Packer,Paragraph,ImageRun,PageBreak,AlignmentType}=window.docx;
 const $=id=>document.getElementById(id);
 
 let images=[];
@@ -326,14 +321,12 @@ function makeGroups(list){
  for(let i=1;i<list.length;i+=2)groups.push(list.slice(i,i+2));
  return groups;
 }
-
-/* 預覽只使用 previewImages，排序編輯不會直接改變中間預覽 */
 function renderPreview(){
  const box=$("preview");
  box.innerHTML="";
  const groups=makeGroups(previewImages||[]);
  if(!groups.length){
-  box.innerHTML='<div class="small">請先上傳圖片，然後按「更新預覽」。';
+  box.innerHTML='<div class="small">請先上傳圖片，然後按「更新預覽」。</div>';
   return;
  }
  groups.forEach((group,pageIndex)=>{
@@ -392,6 +385,7 @@ function dataUrlToBytes(dataUrl){
  return bytes;
 }
 async function createImageRun(im,maxW,maxH){
+ // 放大至可用區域內，依原始比例縮放；絕不裁切。
  const scale=Math.min(maxW/im.width,maxH/im.height);
  const width=Math.max(1,Math.round(im.width*scale));
  const height=Math.max(1,Math.round(im.height*scale));
@@ -404,40 +398,6 @@ async function createImageRun(im,maxW,maxH){
   data:dataUrlToBytes(im.data),
   type:type==="image/png"?"png":"jpg",
   transformation:{width,height}
- });
-}
-const noBorders={
- top:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
- bottom:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
- left:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
- right:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
- insideHorizontal:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
- insideVertical:{style:BorderStyle.NONE,size:0,color:"FFFFFF"}
-};
-function imageCell(run,heightTwips){
- return new TableCell({
-  width:{size:100,type:WidthType.PERCENTAGE},
-  verticalAlign:VerticalAlign.CENTER,
-  margins:{top:0,bottom:0,left:0,right:0},
-  borders:noBorders,
-  children:[new Paragraph({
-   children:[run],
-   alignment:AlignmentType.CENTER,
-   spacing:{before:0,after:0,line:240}
-  })]
- });
-}
-function makeImageTable(runs,rowHeights){
- const rows=runs.map((run,i)=>new TableRow({
-  height:{value:rowHeights[i],rule:HeightRule.ATLEAST},
-  children:[imageCell(run,rowHeights[i])]
- }));
- return new Table({
-  width:{size:100,type:WidthType.PERCENTAGE},
-  columnWidths:[10000],
-  rows,
-  borders:noBorders,
-  margins:{top:0,bottom:0,left:0,right:0}
  });
 }
 $("makeBtn").onclick=async()=>{
@@ -457,29 +417,65 @@ $("makeBtn").onclick=async()=>{
  try{
   const groups=makeGroups(previewImages);
   const children=[];
+
+  // A4 直式：窄邊界約 0.18 英吋。
+  // 兩張同頁時各分配約一半頁高，圖片盡量放大但保留比例。
+  const pageWidth=11906;
+  const pageHeight=16838;
+  const margin=260;
+  const usableWidth=pageWidth-2*margin;
+  const usableHeight=pageHeight-2*margin;
+  const oneImageMaxHeight=usableHeight-100;
+  const twoImageMaxHeight=Math.floor((usableHeight-500)/2);
+
   for(let p=0;p<groups.length;p++){
-   if(p>0)children.push(new Paragraph({children:[new PageBreak()]}));
    const group=groups[p];
    const runs=[];
-   for(let j=0;j<group.length;j++){
-    const im=group[j];
-    // A4 直式，圖片限制在每個區域內，保持比例不裁切。
-    const maxW=740;
-    const maxH=group.length===1?1050:480;
-    runs.push(await createImageRun(im,maxW,maxH));
+   for(const im of group){
+    runs.push(await createImageRun(
+     im,
+     usableWidth/15,
+     group.length===1?oneImageMaxHeight/15:twoImageMaxHeight/15
+    ));
    }
-   // 表格儲存格垂直置中：單張佔滿頁面可用高度；雙張各置中於上、下區域。
-   const heights=group.length===1?[15500]:[7700,7700].slice(0,group.length);
-   children.push(makeImageTable(runs,heights));
+
+   if(p>0)children.push(new Paragraph({children:[new PageBreak()]}));
+
+   // 每張圖片以置中段落呈現，圖片本身按可用寬高比例縮放。
+   if(group.length===1){
+    children.push(new Paragraph({
+     children:[runs[0]],
+     alignment:AlignmentType.CENTER,
+     spacing:{before:0,after:0,line:240}
+    }));
+   }else{
+    children.push(new Paragraph({
+     children:[runs[0]],
+     alignment:AlignmentType.CENTER,
+     spacing:{before:0,after:0,line:240}
+    }));
+    // 中間保留一行間距
+    children.push(new Paragraph({
+     text:" ",
+     alignment:AlignmentType.CENTER,
+     spacing:{before:0,after:0,line:300}
+    }));
+    children.push(new Paragraph({
+     children:[runs[1]],
+     alignment:AlignmentType.CENTER,
+     spacing:{before:0,after:0,line:240}
+    }));
+   }
    $("progress").value=5+Math.round((p+1)/groups.length*80);
   }
+
   if(version!==buildVersion)return;
   const doc=new Document({
    sections:[{
     properties:{
      page:{
-      size:{width:11906,height:16838},
-      margin:{top:350,bottom:350,left:350,right:350}
+      size:{width:pageWidth,height:pageHeight},
+      margin:{top:margin,bottom:margin,left:margin,right:margin}
      }
     },
     children
