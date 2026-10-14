@@ -10,29 +10,30 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;font-family:Arial,"Noto Sans TC",sans-serif;background:#f3f5f9;color:#263244}
 body{overflow-x:hidden}
-header{padding:14px 20px;background:#fff;border-bottom:1px solid #dce2eb}
-header h2{margin:0 0 5px;font-size:21px}
+header{padding:12px 18px;background:#fff;border-bottom:1px solid #dce2eb}
+header h2{margin:0 0 4px;font-size:21px}
 header p{margin:0;color:#667085;font-size:13px}
 main{
- width:100%;max-width:1600px;margin:auto;padding:12px;
+ width:100%;max-width:1600px;margin:auto;padding:10px;
  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
- gap:12px;min-height:calc(100vh - 75px);align-items:stretch
+ gap:10px;align-items:stretch
 }
 .panel{
- min-width:0;width:100%;background:#fff;border:1px solid #dce2eb;border-radius:12px;
- padding:12px;display:flex;flex-direction:column;overflow:hidden
+ min-width:0;width:100%;min-height:0;background:#fff;border:1px solid #dce2eb;
+ border-radius:12px;padding:12px;display:flex;flex-direction:column;overflow:hidden
 }
 h3{font-size:16px;margin:0 0 10px}
 .small{font-size:12px;color:#667085;line-height:1.6}
-.status{font-size:12px;line-height:1.5;min-height:18px;margin:7px 0;overflow-wrap:anywhere;word-break:break-word}
+.status{font-size:12px;line-height:1.5;min-height:18px;margin:6px 0;overflow-wrap:anywhere;word-break:break-word}
 .status.ok{color:#13844b}.status.busy{color:#a56b00}.status.err{color:#c62828}
 button,.upload{
- display:block;max-width:100%;min-width:0;width:100%;padding:10px;
+ display:block;width:100%;min-width:0;max-width:100%;padding:10px;
  border:0;border-radius:8px;font-size:14px;line-height:1.4;
- text-align:center;white-space:normal;overflow-wrap:anywhere;cursor:pointer
+ text-align:center;white-space:normal;overflow-wrap:anywhere;word-break:break-word;
+ cursor:pointer;flex-shrink:0
 }
 button:disabled{opacity:.5;cursor:not-allowed}
-.primary{background:#5558e8;color:white}
+.primary{background:#5558e8;color:#fff}
 .secondary{background:#e9edff;color:#3438a5}
 .danger{background:#fff0f0;color:#b42318}
 .upload{background:#eef0ff;color:#4549c9;font-weight:600}
@@ -46,7 +47,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .image-icon{font-size:21px;flex-shrink:0}
 .num{font-weight:bold;color:#5054d9;min-width:20px;flex-shrink:0}
 .meta{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere;word-break:break-word}
-.image-item button{width:29px;min-width:29px;flex:0 0 29px;padding:5px 2px;font-size:13px}
+.image-item button{width:29px;min-width:29px;max-width:29px;flex:0 0 29px;padding:5px 2px;font-size:13px}
 .actions{display:flex;gap:8px;min-width:0}
 .actions button{flex:1}
 #preview{flex:1;min-height:220px;overflow:auto;background:#eef1f6;border-radius:8px;padding:9px}
@@ -57,34 +58,48 @@ button:disabled{opacity:.5;cursor:not-allowed}
  display:flex;flex-direction:column;gap:2%;overflow:hidden
 }
 .page-label{font-size:10px;color:#687385;text-align:center;flex-shrink:0}
-.preview-image{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.preview-image{
+ flex:1;min-height:0;width:100%;display:flex;align-items:center;
+ justify-content:center;overflow:hidden
+}
 .preview-image img{width:100%;height:100%;object-fit:contain;display:block}
 .filebox{
- width:100%;min-width:0;max-width:100%;background:#f4f6fa;padding:10px;
- border-radius:8px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word
+ display:block;width:100%;min-width:0;max-width:100%;background:#f4f6fa;
+ padding:10px;border-radius:8px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word
 }
-#rightPanel{min-width:0;width:100%}
-#rightPanel>*{min-width:0;max-width:100%}
-#rightPanel .filebox{flex-shrink:0}
-#rightPanel label{display:block;max-width:100%;overflow-wrap:anywhere}
+#rightPanel{min-width:0;width:100%;overflow-x:hidden}
+#rightPanel>*{min-width:0;max-width:100%;flex-shrink:0}
+#rightPanel .small{overflow-wrap:anywhere}
 #filename{
- display:block;width:100%;min-width:0;max-width:100%;height:40px;
+ display:block;width:100%;min-width:0;max-width:100%;height:42px;
  margin-top:6px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;
  font-size:14px;background:white
 }
 #progress{display:block;width:100%;min-width:0;max-width:100%;height:14px;margin:8px 0}
 #downloadArea{display:none;width:100%;min-width:0;max-width:100%;overflow:hidden}
-#downloadArea button{margin-top:10px}
+#downloadArea button{width:100%;min-width:0;max-width:100%;min-height:44px;margin-top:10px}
 #result{display:none;margin-top:8px}
 @media(min-width:901px){
- main{height:calc(100vh - 75px);min-height:560px}
- .panel{height:100%}
+ body{height:100vh;overflow:hidden}
+ header{height:76px}
+ main{height:calc(100vh - 76px);min-height:0}
+ .panel{height:100%;min-height:0}
+ #imageList,#preview{min-height:0}
+ #rightPanel{
+  overflow-y:auto;overflow-x:hidden;
+  scrollbar-gutter:stable;
+  padding:12px 14px 28px 12px
+ }
+ #rightPanel>*{width:100%;max-width:100%;min-width:0}
+ #rightPanel button{flex-shrink:0}
+ #downloadArea{padding-bottom:8px}
 }
 @media(max-width:1100px) and (min-width:901px){
- main{padding:8px;gap:8px}
+ main{padding:7px;gap:7px}
  .panel{padding:8px}
+ #rightPanel{padding:10px 12px 24px 10px}
  .image-item{gap:3px}
- .image-item button{width:25px;min-width:25px;flex-basis:25px}
+ .image-item button{width:25px;min-width:25px;max-width:25px;flex-basis:25px}
 }
 @media(max-width:900px){
  header{padding:12px}
@@ -93,6 +108,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
  .panel{height:auto;min-height:280px;padding:12px}
  #imageList{max-height:380px}
  #preview{max-height:650px}
+ #rightPanel{overflow:visible}
  .page{max-width:100%}
 }
 </style>
@@ -109,7 +125,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
  <label class="upload" for="fileInput">＋ 選擇多張圖片</label>
  <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" multiple>
  <div id="uploadStatus" class="status">⚪ 等待上傳</div>
- <div class="small">拖曳圖片列或按 ↑ ↓ 調整順序，× 可刪除。</div>
+ <div class="small">拖曳圖片列或按 ↑ ↓ 調整順序，× 可刪除圖片。</div>
  <div id="imageList"><div class="small">尚未加入圖片。</div></div>
  <div class="actions"><button id="clearBtn" class="danger">清除全部</button></div>
  <div id="sortStatus" class="status">⚪ 尚未排序</div>
@@ -120,9 +136,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
  <div class="small">第 1 張獨立一頁；第 2、3 張同頁；後續每頁兩張，上下排列。</div>
  <button id="updatePreviewBtn" class="primary" style="margin-top:10px" disabled>更新預覽</button>
  <div id="previewStatus" class="status">⚪ 尚未產生預覽</div>
- <div id="preview">
-  <div class="small">上傳圖片後，調整左邊順序，再按「更新預覽」。</div>
- </div>
+ <div id="preview"><div class="small">上傳圖片後，調整左邊順序，再按「更新預覽」。</div></div>
 </section>
 
 <section class="panel" id="rightPanel">
@@ -132,8 +146,9 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <div><b>格式：</b>Word DOCX</div>
   <div><b>分頁：</b>第 1 張獨立，其餘每頁 2 張</div>
   <div><b>圖片：</b>保持比例、不裁切</div>
+  <div><b>位置：</b>每頁圖片水平、垂直置中</div>
  </div>
- <p class="small">請先更新預覽，再產生 Word。圖片不會刻意降低解析度。</p>
+ <p class="small">調整順序後，請先更新預覽，再產生 Word。圖片不會刻意降低解析度。</p>
  <button id="makeBtn" class="primary">產生 Word 文件</button>
  <div id="makeStatus" class="status">⚪ 等待轉換</div>
  <progress id="progress" max="100" value="0"></progress>
@@ -149,11 +164,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </main>
 
 <script>
-const {Document,Packer,Paragraph,ImageRun,PageBreak,AlignmentType}=window.docx;
+const {
+ Document,Packer,Paragraph,ImageRun,PageBreak,AlignmentType,
+ Table,TableRow,TableCell,WidthType,VerticalAlign,BorderStyle,HeightRule
+}=window.docx;
 const $=id=>document.getElementById(id);
 
-let images=[];             // 左側正在編輯的清單
-let previewImages=null;    // 中間最後一次按「更新預覽」時的清單
+let images=[];
+let previewImages=null;
 let docBlob=null;
 let dragIndex=null;
 let listVersion=0;
@@ -207,7 +225,7 @@ function loadImage(src){
  return new Promise((resolve,reject)=>{
   const im=new Image();
   im.onload=()=>resolve(im);
-  im.onerror=()=>reject(new Error("無法讀取圖片："+src));
+  im.onerror=()=>reject(new Error("無法讀取圖片"));
   im.src=src;
  });
 }
@@ -309,13 +327,13 @@ function makeGroups(list){
  return groups;
 }
 
-/* 中間預覽只讀取 previewImages，不讀取左邊正在編輯的 images */
+/* 預覽只使用 previewImages，排序編輯不會直接改變中間預覽 */
 function renderPreview(){
  const box=$("preview");
  box.innerHTML="";
  const groups=makeGroups(previewImages||[]);
  if(!groups.length){
-  box.innerHTML='<div class="small">請先上傳圖片，然後按「更新預覽」。</div>';
+  box.innerHTML='<div class="small">請先上傳圖片，然後按「更新預覽」。';
   return;
  }
  groups.forEach((group,pageIndex)=>{
@@ -339,14 +357,9 @@ function renderPreview(){
  });
 }
 $("updatePreviewBtn").onclick=()=>{
- if(!images.length){
-  status("previewStatus","🔴 請先上傳圖片","err");
-  return;
- }
+ if(!images.length){status("previewStatus","🔴 請先上傳圖片","err");return}
  $("updatePreviewBtn").disabled=true;
  status("previewStatus","🟡 正在更新預覽…","busy");
-
- // 關鍵：複製目前清單作為中間預覽的獨立快照
  previewImages=images.slice();
  previewVersion=listVersion;
  renderPreview();
@@ -373,8 +386,7 @@ $("clearBtn").onclick=()=>{
 };
 
 function dataUrlToBytes(dataUrl){
- const base64=dataUrl.split(",")[1];
- const binary=atob(base64);
+ const binary=atob(dataUrl.split(",")[1]);
  const bytes=new Uint8Array(binary.length);
  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
  return bytes;
@@ -394,11 +406,42 @@ async function createImageRun(im,maxW,maxH){
   transformation:{width,height}
  });
 }
+const noBorders={
+ top:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
+ bottom:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
+ left:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
+ right:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
+ insideHorizontal:{style:BorderStyle.NONE,size:0,color:"FFFFFF"},
+ insideVertical:{style:BorderStyle.NONE,size:0,color:"FFFFFF"}
+};
+function imageCell(run,heightTwips){
+ return new TableCell({
+  width:{size:100,type:WidthType.PERCENTAGE},
+  verticalAlign:VerticalAlign.CENTER,
+  margins:{top:0,bottom:0,left:0,right:0},
+  borders:noBorders,
+  children:[new Paragraph({
+   children:[run],
+   alignment:AlignmentType.CENTER,
+   spacing:{before:0,after:0,line:240}
+  })]
+ });
+}
+function makeImageTable(runs,rowHeights){
+ const rows=runs.map((run,i)=>new TableRow({
+  height:{value:rowHeights[i],rule:HeightRule.ATLEAST},
+  children:[imageCell(run,rowHeights[i])]
+ }));
+ return new Table({
+  width:{size:100,type:WidthType.PERCENTAGE},
+  columnWidths:[10000],
+  rows,
+  borders:noBorders,
+  margins:{top:0,bottom:0,left:0,right:0}
+ });
+}
 $("makeBtn").onclick=async()=>{
- if(!images.length){
-  status("makeStatus","🔴 請先上傳圖片","err");
-  return;
- }
+ if(!images.length){status("makeStatus","🔴 請先上傳圖片","err");return}
  if(previewVersion!==listVersion||!previewImages){
   status("makeStatus","🟡 請先按中間的「更新預覽」，確認最新順序。","busy");
   $("updatePreviewBtn").focus();
@@ -410,43 +453,35 @@ $("makeBtn").onclick=async()=>{
  $("downloadArea").style.display="none";
  $("result").style.display="none";
  $("progress").value=0;
- status("makeStatus","🟡 正在建立 Word…","busy");
+ status("makeStatus","🟡 正在建立 Word，請稍候…","busy");
  try{
-  // Word 使用預覽快照，確保與中間已確認的順序一致
   const groups=makeGroups(previewImages);
   const children=[];
   for(let p=0;p<groups.length;p++){
+   if(p>0)children.push(new Paragraph({children:[new PageBreak()]}));
    const group=groups[p];
+   const runs=[];
    for(let j=0;j<group.length;j++){
     const im=group[j];
-    const maxW=760;
-    const maxH=p===0?1080:470;
-    const run=await createImageRun(im,maxW,maxH);
-    children.push(new Paragraph({
-     children:[run],
-     alignment:AlignmentType.CENTER,
-     spacing:{before:0,after:0,line:240}
-    }));
-    if(group.length===2&&j===0){
-     // 上下圖片間加入一行空白
-     children.push(new Paragraph({
-      text:" ",
-      spacing:{before:0,after:0,line:300}
-     }));
-    }
+    // A4 直式，圖片限制在每個區域內，保持比例不裁切。
+    const maxW=740;
+    const maxH=group.length===1?1050:480;
+    runs.push(await createImageRun(im,maxW,maxH));
    }
-   if(p<groups.length-1){
-    children.push(new Paragraph({children:[new PageBreak()]}));
-   }
+   // 表格儲存格垂直置中：單張佔滿頁面可用高度；雙張各置中於上、下區域。
+   const heights=group.length===1?[15500]:[7700,7700].slice(0,group.length);
+   children.push(makeImageTable(runs,heights));
    $("progress").value=5+Math.round((p+1)/groups.length*80);
   }
   if(version!==buildVersion)return;
   const doc=new Document({
    sections:[{
-    properties:{page:{
-     size:{width:11906,height:16838},
-     margin:{top:100,bottom:100,left:100,right:100}
-    }},
+    properties:{
+     page:{
+      size:{width:11906,height:16838},
+      margin:{top:350,bottom:350,left:350,right:350}
+     }
+    },
     children
    }]
   });
@@ -454,7 +489,7 @@ $("makeBtn").onclick=async()=>{
   if(version!==buildVersion){docBlob=null;return}
   $("progress").value=100;
   $("result").style.display="block";
-  $("result").innerHTML="<b>🟢 Word 製作完成</b><br>圖片："+previewImages.length+
+  $("result").innerHTML="<b>🟢 Word 文件已建立</b><br>圖片："+previewImages.length+
    " 張<br>預計頁數："+groups.length+" 頁<br>格式：DOCX";
   $("downloadArea").style.display="block";
   $("downloadBtn").disabled=false;
@@ -470,22 +505,15 @@ $("makeBtn").onclick=async()=>{
  }
 };
 $("downloadBtn").onclick=()=>{
- if(!docBlob){
-  status("downloadStatus","🔴 請先產生 Word","err");
-  return;
- }
+ if(!docBlob){status("downloadStatus","🔴 請先產生 Word","err");return}
  let name=$("filename").value.trim();
  if(!name){
   status("downloadStatus","🔴 請輸入檔案名稱","err");
   $("filename").focus();
   return;
  }
- name=name.replace(/\.docx$/i,"");
- name=name.replace(/[<>:"/\\|?*\x00-\x1F]/g,"_").trim();
- if(!name){
-  status("downloadStatus","🔴 檔案名稱無效","err");
-  return;
- }
+ name=name.replace(/\.docx$/i,"").replace(/[<>:"/\\|?*\x00-\x1F]/g,"_").trim();
+ if(!name){status("downloadStatus","🔴 檔案名稱無效","err");return}
  try{
   status("downloadStatus","🟡 正在準備下載…","busy");
   const url=URL.createObjectURL(docBlob);
