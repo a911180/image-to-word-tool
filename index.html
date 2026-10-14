@@ -5,8 +5,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>多圖片排序轉 Word 工具</title>
+
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,"Noto Sans TC",sans-serif;background:#f3f5f9;color:#263244}
@@ -16,208 +17,523 @@ header p{margin:0;color:#667085;font-size:13px}
 main{max-width:1600px;margin:auto;padding:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;height:calc(100vh - 76px);min-height:560px}
 .panel{background:#fff;border:1px solid #dce2eb;border-radius:12px;padding:14px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 h3{font-size:16px;margin:0 0 12px}
-.status{font-size:12px;color:#667085;margin:7px 0;min-height:18px}
+.status{font-size:12px;color:#667085;margin:7px 0;min-height:18px;overflow-wrap:anywhere}
 .status.ok{color:#13844b}.status.busy{color:#b77900}.status.err{color:#c62828}
 button,.upload{border:0;border-radius:8px;padding:10px 12px;font-size:14px;cursor:pointer;text-align:center}
-.primary{background:#5558e8;color:white}.secondary{background:#e9edff;color:#3438a5}.danger{background:#fff0f0;color:#b42318}
+.primary{background:#5558e8;color:white}
+.secondary{background:#e9edff;color:#3438a5}
+.danger{background:#fff0f0;color:#b42318}
 button:disabled{opacity:.5;cursor:not-allowed}
 .upload{display:block;background:#eef0ff;color:#4549c9;font-weight:600}
 #fileInput{display:none}
-.small{font-size:12px;color:#667085}
+.small{font-size:12px;color:#667085;line-height:1.6}
 #imageList{overflow:auto;flex:1;min-height:100px;margin:10px 0}
-.image-item{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #e0e5ed;border-radius:8px;margin-bottom:7px;background:#fff;cursor:grab}
+.image-item{display:flex;align-items:center;gap:7px;padding:9px 7px;border:1px solid #e0e5ed;border-radius:8px;margin-bottom:7px;background:#fff;cursor:grab;min-width:0}
 .image-item.dragging{opacity:.4}
-.image-item img{width:54px;height:64px;object-fit:contain;background:#f3f5f9;border-radius:4px}
-.image-item .meta{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere}
-.image-item .num{font-weight:bold;color:#5054d9}
-.image-item button{padding:6px 8px}
+.image-icon{font-size:25px;flex-shrink:0}
+.image-item .num{font-weight:bold;color:#5054d9;min-width:24px}
+.image-item .meta{flex:1;min-width:0;font-size:12px;overflow-wrap:anywhere;word-break:break-word}
+.image-item .meta b{font-weight:500}
+.image-item button{padding:6px 8px;flex-shrink:0}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .actions button{flex:1}
 #preview{overflow:auto;flex:1;min-height:0;background:#eef1f6;border-radius:8px;padding:10px}
-.page{background:white;width:100%;max-width:340px;min-height:240px;margin:0 auto 12px;padding:12px;box-shadow:0 1px 5px #ccd2dc;display:flex;flex-direction:column;gap:8px}
-.page-label{font-size:11px;color:#687385;text-align:center}
-.page img{display:block;max-width:100%;width:100%;height:auto;object-fit:contain;flex:1;min-height:0}
-.page.two img{max-height:190px}
-.filebox{background:#f4f6fa;padding:12px;border-radius:8px;overflow-wrap:anywhere}
+.page{background:white;width:100%;max-width:390px;aspect-ratio:210/297;margin:0 auto 14px;padding:3%;box-shadow:0 1px 5px #ccd2dc;display:flex;flex-direction:column;gap:1%;overflow:hidden}
+.page-label{font-size:10px;color:#687385;text-align:center;flex-shrink:0}
+.preview-image{width:100%;min-height:0;flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.preview-image img{display:block;width:100%;height:100%;object-fit:contain}
+.filebox{background:#f4f6fa;padding:12px;border-radius:8px;overflow-wrap:anywhere;line-height:1.8}
+input[type=text]{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:11px;font-size:14px;margin-top:6px}
 progress{width:100%;height:14px}
-@media(max-width:900px){main{height:auto;min-height:0;grid-template-columns:1fr}.panel{min-height:300px}#imageList{max-height:380px}#preview{max-height:520px}}
+@media(max-width:900px){
+ main{height:auto;min-height:0;grid-template-columns:1fr}
+ .panel{min-height:280px}
+ #imageList{max-height:380px}
+ #preview{max-height:650px}
+ .page{max-width:100%;padding:3%}
+}
 </style>
 </head>
+
 <body>
 <header>
-<h2>🖼️ 多圖片排序轉 Word 工具</h2>
-<p>批次上傳 → 拖曳排序 → 預覽 → 下載 DOCX｜圖片在本機瀏覽器處理</p>
+  <h2>🖼️ 多圖片排序轉 Word 工具</h2>
+  <p>批次上傳 → 拖曳排序 → 預覽 → 自訂檔名 → 下載 DOCX｜圖片在本機瀏覽器處理</p>
 </header>
+
 <main>
-<section class="panel">
-<h3>① 圖片上傳與排序</h3>
-<label class="upload" for="fileInput">＋ 選擇多張圖片</label>
-<input id="fileInput" type="file" accept="image/*" multiple>
-<div id="uploadStatus" class="status">⚪ 等待上傳</div>
-<div class="small">拖曳圖片可調整順序；也可刪除單張圖片。</div>
-<div id="imageList"></div>
-<div class="actions">
-<button id="clearBtn" class="danger">清除全部</button>
-</div>
-<div id="sortStatus" class="status">⚪ 尚未排序</div>
-</section>
+  <section class="panel">
+    <h3>① 圖片上傳與排序</h3>
 
-<section class="panel">
-<h3>② Word 預覽</h3>
-<div class="small">第 1 張獨立一頁；其後每頁兩張，上下排列。</div>
-<div id="previewStatus" class="status">⚪ 尚未產生預覽</div>
-<div id="preview"><div class="small">上傳圖片後，這裡會顯示分頁預覽。</div></div>
-</section>
+    <label class="upload" for="fileInput">＋ 選擇多張圖片</label>
+    <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp" multiple>
 
-<section class="panel">
-<h3>③ 產生與下載 Word</h3>
-<div class="filebox">
-<div><b>頁面：</b>直式 A4</div>
-<div><b>格式：</b>Word DOCX</div>
-<div><b>分頁：</b>第 1 張獨立，其餘每頁 2 張</div>
-</div>
-<p class="small">圖片會按比例縮放，不會刻意拉扁或拉長。</p>
-<button id="makeBtn" class="primary">產生 Word 文件</button>
-<div id="makeStatus" class="status">⚪ 等待轉換</div>
-<progress id="progress" max="100" value="0"></progress>
-<div id="result" class="filebox" style="margin-top:12px;display:none"></div>
-<button id="downloadBtn" class="primary" disabled style="margin-top:10px">下載 Word（.docx）</button>
-<div id="downloadStatus" class="status">⚪ 尚未下載</div>
-</section>
+    <div id="uploadStatus" class="status">⚪ 等待上傳</div>
+    <div class="small">拖曳檔案列可調整順序，也可以按 ↑ ↓ 或刪除。</div>
+
+    <div id="imageList">
+      <div class="small">尚未加入圖片。</div>
+    </div>
+
+    <div class="actions">
+      <button id="clearBtn" class="danger">清除全部</button>
+    </div>
+
+    <div id="sortStatus" class="status">⚪ 尚未排序</div>
+  </section>
+
+  <section class="panel">
+    <h3>② Word 預覽</h3>
+    <div class="small">第 1 張獨立一頁；第 2、3 張同頁；後續每頁兩張，上下排列。</div>
+    <div id="previewStatus" class="status">⚪ 尚未產生預覽</div>
+    <div id="preview">
+      <div class="small">上傳圖片後，這裡會顯示分頁預覽。</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>③ 產生與下載 Word</h3>
+
+    <div class="filebox">
+      <div><b>頁面：</b>直式 A4</div>
+      <div><b>格式：</b>Word DOCX</div>
+      <div><b>分頁：</b>第 1 張獨立，其餘每頁 2 張</div>
+      <div><b>圖片：</b>保持比例、不裁切、不刻意壓縮</div>
+    </div>
+
+    <p class="small">圖片會盡量放大至頁面可用範圍。為避免遮擋內容，會保留原始長寬比。</p>
+
+    <button id="makeBtn" class="primary">產生 Word 文件</button>
+    <div id="makeStatus" class="status">⚪ 等待轉換</div>
+    <progress id="progress" max="100" value="0"></progress>
+
+    <div id="result" class="filebox" style="margin-top:12px;display:none"></div>
+
+    <div id="downloadArea" style="display:none;margin-top:12px">
+      <label for="filename"><b>下載檔案名稱</b></label>
+      <input id="filename" type="text" value="圖片排序結果" maxlength="100" placeholder="請輸入檔案名稱">
+      <div class="small">不用輸入 .docx，下載時會自動加上副檔名。</div>
+      <button id="downloadBtn" class="primary" style="width:100%;margin-top:10px" disabled>下載 Word（.docx）</button>
+    </div>
+
+    <div id="downloadStatus" class="status">⚪ 尚未下載</div>
+  </section>
 </main>
+
 <script>
-const {Document,Packer,Paragraph,ImageRun,PageBreak,AlignmentType} = window.docx;
-const $=id=>document.getElementById(id);
-let images=[],docBlob=null,dragIndex=null;
+const {
+  Document,
+  Packer,
+  Paragraph,
+  ImageRun,
+  PageBreak,
+  AlignmentType
+} = window.docx;
 
-function setStatus(id,text,type=""){
-  const el=$(id);el.textContent=text;el.className="status "+type;
-}
-function escapeText(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function readData(file){
- return new Promise((resolve,reject)=>{
-  const reader=new FileReader();
-  reader.onload=()=>resolve(reader.result);
-  reader.onerror=()=>reject(new Error("讀取圖片失敗："+file.name));
-  reader.readAsDataURL(file);
- });
-}
-function loadImage(src){
- return new Promise((resolve,reject)=>{
-  const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error("無法解讀圖片"));
-  im.src=src;
- });
-}
-async function addFiles(files){
- const list=Array.from(files).filter(f=>f.type.startsWith("image/"));
- if(!list.length){setStatus("uploadStatus","🔴 請選擇圖片檔案","err");return;}
- setStatus("uploadStatus","🟡 正在載入 "+list.length+" 張圖片…","busy");
- $("fileInput").disabled=true;
- try{
-  for(const file of list){
-   const data=await readData(file);
-   const im=await loadImage(data);
-   images.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name:file.name,data,width:im.naturalWidth,height:im.naturalHeight});
-  }
-  renderList();renderPreview();
-  setStatus("uploadStatus","🟢 圖片載入完成，共 "+images.length+" 張","ok");
-  setStatus("sortStatus","🟢 圖片順序已更新","ok");
- }catch(e){setStatus("uploadStatus","🔴 "+e.message,"err");}
- finally{$("fileInput").disabled=false;$("fileInput").value="";}
-}
-$("fileInput").addEventListener("change",e=>addFiles(e.target.files));
+const $ = id => document.getElementById(id);
 
-function renderList(){
- const list=$("imageList");list.innerHTML="";
- if(!images.length){list.innerHTML='<div class="small">尚未加入圖片。</div>';return;}
- images.forEach((im,i)=>{
-  const row=document.createElement("div");
-  row.className="image-item";row.draggable=true;row.dataset.index=i;
-  row.innerHTML='<span class="num">'+(i+1)+'</span><img alt=""><div class="meta"><b>'+escapeText(im.name)+'</b><br><span class="small">'+im.width+' × '+im.height+'</span></div><button class="secondary" title="上移" aria-label="上移">↑</button><button class="secondary" title="下移" aria-label="下移">↓</button><button class="danger" title="刪除" aria-label="刪除">×</button>';
-  row.querySelector("img").src=im.data;
-  const buttons=row.querySelectorAll("button");
-  buttons[0].onclick=()=>move(i,-1);buttons[1].onclick=()=>move(i,1);buttons[2].onclick=()=>removeImage(i);
-  row.addEventListener("dragstart",e=>{dragIndex=i;row.classList.add("dragging");e.dataTransfer.effectAllowed="move";});
-  row.addEventListener("dragend",()=>row.classList.remove("dragging"));
-  row.addEventListener("dragover",e=>e.preventDefault());
-  row.addEventListener("drop",e=>{e.preventDefault();if(dragIndex!==null&&dragIndex!==i){const moved=images.splice(dragIndex,1)[0];images.splice(i,0,moved);changed();}dragIndex=null;});
-  list.appendChild(row);
- });
-}
-function move(i,d){const j=i+d;if(j<0||j>=images.length)return;const a=images.splice(i,1)[0];images.splice(j,0,a);changed();}
-function removeImage(i){images.splice(i,1);changed();setStatus("uploadStatus","🟢 已刪除圖片，剩餘 "+images.length+" 張","ok");}
-function changed(){docBlob=null;$("downloadBtn").disabled=true;$("result").style.display="none";$("progress").value=0;renderList();renderPreview();setStatus("sortStatus","🟢 順序已更新","ok");setStatus("makeStatus","⚪ 順序變更，請重新產生 Word");setStatus("downloadStatus","⚪ 尚未下載");}
+let images = [];
+let docBlob = null;
+let dragIndex = null;
+let buildVersion = 0;
 
-function renderPreview(){
- const box=$("preview");box.innerHTML="";
- if(!images.length){box.innerHTML='<div class="small">上傳圖片後，這裡會顯示分頁預覽。</div>';setStatus("previewStatus","⚪ 尚未產生預覽");return;}
- const groups=[[images[0]]];
- for(let i=1;i<images.length;i+=2)groups.push(images.slice(i,i+2));
- groups.forEach((group,pi)=>{
-  const page=document.createElement("div");page.className="page"+(group.length===2?" two":"");
-  const label=document.createElement("div");label.className="page-label";label.textContent="Word 第 "+(pi+1)+" 頁";page.appendChild(label);
-  group.forEach((im,gi)=>{
-   const image=document.createElement("img");image.src=im.data;image.alt=im.name;
-   page.appendChild(image);
+function setStatus(id, text, type = "") {
+  const el = $(id);
+  el.textContent = text;
+  el.className = "status " + type;
+}
+
+function escapeText(s) {
+  return s.replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function invalidateWord() {
+  buildVersion++;
+  docBlob = null;
+  $("downloadBtn").disabled = true;
+  $("downloadArea").style.display = "none";
+  $("result").style.display = "none";
+  $("progress").value = 0;
+  setStatus("makeStatus", "⚪ 圖片清單已變更，請重新產生 Word");
+  setStatus("downloadStatus", "⚪ 尚未下載");
+}
+
+function readData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("讀取圖片失敗：" + file.name));
+    reader.readAsDataURL(file);
   });
-  box.appendChild(page);
- });
- setStatus("previewStatus","🟢 預覽已更新，共 "+groups.length+" 頁","ok");
 }
-$("clearBtn").onclick=()=>{
- images=[];docBlob=null;renderList();renderPreview();$("result").style.display="none";$("downloadBtn").disabled=true;$("progress").value=0;
- setStatus("uploadStatus","⚪ 已清除全部圖片");setStatus("sortStatus","⚪ 尚未排序");setStatus("makeStatus","⚪ 等待轉換");setStatus("downloadStatus","⚪ 尚未下載");
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => resolve(im);
+    im.onerror = () => reject(new Error("無法讀取圖片，請確認檔案格式。"));
+    im.src = src;
+  });
+}
+
+async function addFiles(fileList) {
+  const files = Array.from(fileList).filter(f => f.type.startsWith("image/"));
+  if (!files.length) {
+    setStatus("uploadStatus", "🔴 請選擇支援的圖片檔案", "err");
+    return;
+  }
+
+  $("fileInput").disabled = true;
+  setStatus("uploadStatus", "🟡 正在載入圖片…", "busy");
+
+  let successCount = 0;
+  const errors = [];
+
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setStatus("uploadStatus",
+        "🟡 正在載入第 " + (i + 1) + "/" + files.length + " 張：" + file.name,
+        "busy");
+
+      try {
+        const data = await readData(file);
+        const im = await loadImage(data);
+
+        images.push({
+          id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())),
+          name: file.name,
+          data,
+          width: im.naturalWidth,
+          height: im.naturalHeight,
+          mime: file.type
+        });
+        successCount++;
+      } catch (e) {
+        errors.push(file.name + "：" + e.message);
+      }
+    }
+
+    if (successCount) {
+      invalidateWord();
+      renderList();
+      renderPreview();
+      setStatus("sortStatus", "🟢 圖片順序已更新", "ok");
+    }
+
+    if (errors.length) {
+      setStatus("uploadStatus",
+        "⚠️ 成功 " + successCount + " 張；失敗 " + errors.length + " 張：" + errors.join("；"),
+        "err");
+    } else {
+      setStatus("uploadStatus", "🟢 圖片載入完成，共 " + images.length + " 張", "ok");
+    }
+  } finally {
+    $("fileInput").disabled = false;
+    $("fileInput").value = "";
+  }
+}
+
+$("fileInput").addEventListener("change", e => addFiles(e.target.files));
+
+function renderList() {
+  const list = $("imageList");
+  list.innerHTML = "";
+
+  if (!images.length) {
+    list.innerHTML = '<div class="small">尚未加入圖片。</div>';
+    return;
+  }
+
+  images.forEach((im, i) => {
+    const row = document.createElement("div");
+    row.className = "image-item";
+    row.draggable = true;
+    row.dataset.index = i;
+
+    row.innerHTML =
+      '<span class="num">' + (i + 1) + '</span>' +
+      '<span class="image-icon" aria-hidden="true">🖼️</span>' +
+      '<div class="meta"><b>' + escapeText(im.name) + '</b>' +
+      '<br><span class="small">' + im.width + ' × ' + im.height + '</span></div>' +
+      '<button class="secondary" title="上移" aria-label="上移">↑</button>' +
+      '<button class="secondary" title="下移" aria-label="下移">↓</button>' +
+      '<button class="danger" title="刪除" aria-label="刪除">×</button>';
+
+    const buttons = row.querySelectorAll("button");
+    buttons[0].onclick = () => moveImage(i, -1);
+    buttons[1].onclick = () => moveImage(i, 1);
+    buttons[2].onclick = () => removeImage(i);
+
+    row.addEventListener("dragstart", e => {
+      dragIndex = i;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+      dragIndex = null;
+    });
+    row.addEventListener("dragover", e => e.preventDefault());
+    row.addEventListener("drop", e => {
+      e.preventDefault();
+      if (dragIndex !== null && dragIndex !== i) {
+        const moved = images.splice(dragIndex, 1)[0];
+        images.splice(i, 0, moved);
+        changed();
+      }
+      dragIndex = null;
+    });
+
+    list.appendChild(row);
+  });
+}
+
+function moveImage(i, direction) {
+  const j = i + direction;
+  if (j < 0 || j >= images.length) return;
+  const item = images.splice(i, 1)[0];
+  images.splice(j, 0, item);
+  changed();
+}
+
+function removeImage(i) {
+  images.splice(i, 1);
+  changed();
+  setStatus("uploadStatus", "🟢 已刪除圖片，剩餘 " + images.length + " 張", "ok");
+}
+
+function changed() {
+  invalidateWord();
+  renderList();
+  renderPreview();
+  setStatus("sortStatus", "🟢 順序已更新", "ok");
+}
+
+function getGroups() {
+  if (!images.length) return [];
+  const groups = [[images[0]]];
+  for (let i = 1; i < images.length; i += 2) {
+    groups.push(images.slice(i, i + 2));
+  }
+  return groups;
+}
+
+function renderPreview() {
+  const box = $("preview");
+  box.innerHTML = "";
+
+  if (!images.length) {
+    box.innerHTML = '<div class="small">上傳圖片後，這裡會顯示分頁預覽。</div>';
+    setStatus("previewStatus", "⚪ 尚未產生預覽");
+    return;
+  }
+
+  const groups = getGroups();
+
+  groups.forEach((group, pageIndex) => {
+    const page = document.createElement("div");
+    page.className = "page";
+
+    const label = document.createElement("div");
+    label.className = "page-label";
+    label.textContent = "Word 第 " + (pageIndex + 1) + " 頁";
+    page.appendChild(label);
+
+    group.forEach(im => {
+      const area = document.createElement("div");
+      area.className = "preview-image";
+      const img = document.createElement("img");
+      img.src = im.data;
+      img.alt = im.name;
+      img.style.objectFit = "contain";
+      area.appendChild(img);
+      page.appendChild(area);
+    });
+
+    box.appendChild(page);
+  });
+
+  setStatus("previewStatus", "🟢 預覽已更新，共 " + groups.length + " 頁", "ok");
+}
+
+$("clearBtn").onclick = () => {
+  images = [];
+  invalidateWord();
+  renderList();
+  renderPreview();
+  setStatus("uploadStatus", "⚪ 已清除全部圖片");
+  setStatus("sortStatus", "⚪ 尚未排序");
+  setStatus("makeStatus", "⚪ 等待轉換");
+  setStatus("downloadStatus", "⚪ 尚未下載");
 };
 
-async function imageBytes(data){
- const res=await fetch(data);return new Uint8Array(await res.arrayBuffer());
-}
-async function createImageRun(im,maxW,maxH){
- const src=await loadImage(im.data);
- const scale=Math.min(maxW/src.naturalWidth,maxH/src.naturalHeight);
- const w=Math.max(1,Math.round(src.naturalWidth*scale));
- const h=Math.max(1,Math.round(src.naturalHeight*scale));
- return new ImageRun({data:await imageBytes(im.data),transformation:{width:w,height:h}});
-}
-$("makeBtn").onclick=async()=>{
- if(!images.length){setStatus("makeStatus","🔴 請先上傳圖片","err");return;}
- $("makeBtn").disabled=true;$("downloadBtn").disabled=true;$("result").style.display="none";$("progress").value=5;docBlob=null;
- setStatus("makeStatus","🟡 正在整理圖片與建立 Word…","busy");
- try{
-  const children=[];
-  const groups=[[images[0]]];
-  for(let i=1;i<images.length;i+=2)groups.push(images.slice(i,i+2));
-  for(let pi=0;pi<groups.length;pi++){
-   const group=groups[pi];
-   for(let gi=0;gi<group.length;gi++){
-    const im=group[gi];
-    const maxW=440,maxH=pi===0?700:320;
-    const run=await createImageRun(im,maxW,maxH);
-    children.push(new Paragraph({children:[run],alignment:AlignmentType.CENTER,spacing:{before:100,after:100}}));
-    if(gi<group.length-1)children.push(new Paragraph({text:"",spacing:{after:100}}));
-   }
-   if(pi<groups.length-1)children.push(new Paragraph({children:[new PageBreak()]}));
-   $("progress").value=10+Math.round((pi+1)/groups.length*80);
+function dataUrlToBytes(dataUrl) {
+  const base64 = dataUrl.split(",")[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
   }
-  const doc=new Document({sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:500,bottom:500,left:500,right:500}}},children}]});
-  docBlob=await Packer.toBlob(doc);
-  $("progress").value=100;
-  $("result").style.display="block";
-  $("result").innerHTML="<b>🟢 Word 文件已建立</b><br>圖片："+images.length+" 張<br>頁數："+groups.length+" 頁<br>檔案格式：DOCX";
-  $("downloadBtn").disabled=false;
-  setStatus("makeStatus","🟢 Word 製作完成","ok");
- }catch(e){
-  console.error(e);setStatus("makeStatus","🔴 轉換失敗："+(e.message||"未知錯誤"),"err");
- }finally{$("makeBtn").disabled=false;}
+  return bytes;
+}
+
+async function createImageRun(im, maxW, maxH) {
+  const scale = Math.min(maxW / im.width, maxH / im.height);
+  const width = Math.max(1, Math.round(im.width * scale));
+  const height = Math.max(1, Math.round(im.height * scale));
+
+  let type = im.mime;
+  if (type === "image/jpg") type = "image/jpeg";
+
+  if (type !== "image/png" && type !== "image/jpeg") {
+    throw new Error(
+      "「" + im.name + "」的格式目前無法直接嵌入 Word。請先將圖片另存為 JPG 或 PNG，再重新上傳。"
+    );
+  }
+
+  return new ImageRun({
+    data: dataUrlToBytes(im.data),
+    type: type === "image/png" ? "png" : "jpg",
+    transformation: { width, height }
+  });
+}
+
+$("makeBtn").onclick = async () => {
+  if (!images.length) {
+    setStatus("makeStatus", "🔴 請先上傳圖片", "err");
+    return;
+  }
+
+  const thisVersion = ++buildVersion;
+  $("makeBtn").disabled = true;
+  $("downloadBtn").disabled = true;
+  $("downloadArea").style.display = "none";
+  $("result").style.display = "none";
+  $("progress").value = 0;
+
+  setStatus("makeStatus", "🟡 正在整理圖片與建立 Word…", "busy");
+
+  try {
+    const groups = getGroups();
+    const children = [];
+
+    // A4 尺寸以 DXA 表示；小邊界提供更大的圖片顯示空間。
+    // Word 圖片尺寸使用像素單位，並依原始比例縮放。
+    const maxWidth = 760;
+    const firstPageMaxHeight = 1080;
+    const pairedImageMaxHeight = 515;
+
+    for (let pageIndex = 0; pageIndex < groups.length; pageIndex++) {
+      const group = groups[pageIndex];
+
+      for (let imageIndex = 0; imageIndex < group.length; imageIndex++) {
+        const im = group[imageIndex];
+        const maxHeight = pageIndex === 0
+          ? firstPageMaxHeight
+          : pairedImageMaxHeight;
+
+        const run = await createImageRun(im, maxWidth, maxHeight);
+
+        children.push(new Paragraph({
+          children: [run],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 0, after: 0, line: 240 }
+        }));
+      }
+
+      if (pageIndex < groups.length - 1) {
+        children.push(new Paragraph({
+          children: [new PageBreak()],
+          spacing: { before: 0, after: 0 }
+        }));
+      }
+
+      $("progress").value = 5 + Math.round(((pageIndex + 1) / groups.length) * 80);
+    }
+
+    if (thisVersion !== buildVersion) return;
+
+    const doc = new Document({
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 100, bottom: 100, left: 100, right: 100 }
+          }
+        },
+        children
+      }]
+    });
+
+    docBlob = await Packer.toBlob(doc);
+
+    if (thisVersion !== buildVersion) {
+      docBlob = null;
+      return;
+    }
+
+    $("progress").value = 100;
+    $("result").style.display = "block";
+    $("result").innerHTML =
+      "<b>🟢 Word 文件已建立</b><br>" +
+      "圖片：" + images.length + " 張<br>" +
+      "預計頁數：" + groups.length + " 頁<br>" +
+      "檔案格式：DOCX";
+
+    $("downloadArea").style.display = "block";
+    $("downloadBtn").disabled = false;
+    setStatus("makeStatus", "🟢 Word 製作完成，可以設定檔名並下載", "ok");
+    setStatus("downloadStatus", "⚪ 請輸入檔名後下載");
+  } catch (e) {
+    console.error(e);
+    docBlob = null;
+    $("progress").value = 0;
+    setStatus("makeStatus", "🔴 轉換失敗：" + (e.message || "未知錯誤"), "err");
+  } finally {
+    $("makeBtn").disabled = false;
+  }
 };
-$("downloadBtn").onclick=()=>{
- if(!docBlob){setStatus("downloadStatus","🔴 請先產生 Word","err");return;}
- try{
-  const url=URL.createObjectURL(docBlob);
-  const a=document.createElement("a");a.href=url;a.download="圖片排序結果.docx";document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
-  setStatus("downloadStatus","🟢 已觸發下載，請查看瀏覽器下載項目","ok");
- }catch(e){setStatus("downloadStatus","🔴 下載失敗："+e.message,"err");}
+
+$("downloadBtn").onclick = () => {
+  if (!docBlob) {
+    setStatus("downloadStatus", "🔴 請先產生 Word", "err");
+    return;
+  }
+
+  let name = $("filename").value.trim();
+  if (!name) {
+    setStatus("downloadStatus", "🔴 請先輸入檔案名稱", "err");
+    $("filename").focus();
+    return;
+  }
+
+  name = name.replace(/\.docx$/i, "");
+  name = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
+
+  if (!name) {
+    setStatus("downloadStatus", "🔴 檔案名稱無效，請重新輸入", "err");
+    return;
+  }
+
+  try {
+    setStatus("downloadStatus", "🟡 正在準備下載…", "busy");
+
+    const url = URL.createObjectURL(docBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name + ".docx";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    setStatus("downloadStatus", "🟢 已觸發下載：" + name + ".docx", "ok");
+  } catch (e) {
+    setStatus("downloadStatus", "🔴 下載失敗：" + e.message, "err");
+  }
 };
 </script>
 </body>
