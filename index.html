@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -97,7 +98,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <section class="panel">
  <h3>② Word 預覽</h3>
- <div class="small">第 1 張獨立一頁；第 2、3 張同頁；後續每頁兩張，上下排列。頁碼會加在每頁右下角。</div>
+ <div class="small">第 1 張獨立一頁；第 2、3 張同頁；後續每頁兩張，上下排列。每頁右下角有 30 pt 頁碼。</div>
  <button id="updatePreviewBtn" class="primary" style="margin-top:10px" disabled>更新預覽</button>
  <div id="previewStatus" class="status">⚪ 尚未產生預覽</div>
  <div id="preview"><div class="small">上傳圖片後，調整左邊順序，再按「更新預覽」。</div></div>
@@ -110,10 +111,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <div><b>邊界：</b>四周約 0.7 公分</div>
   <div><b>格式：</b>Word DOCX</div>
   <div><b>分頁：</b>第 1 張獨立，其餘每頁 2 張</div>
-  <div><b>圖片：</b>保持上一版大小、不裁切</div>
-  <div><b>頁碼：</b>每頁右下角自動編號</div>
+  <div><b>圖片：</b>維持原比例、不裁切</div>
+  <div><b>頁碼：</b>右下角 30 pt</div>
  </div>
- <p class="small">圖片保持原始比例，不裁切、不變形。建議列印前確認 A4 紙張與縮放設定。</p>
+ <p class="small">圖片不裁切、不變形。已為頁尾和段落預留空間，降低圖片被擠到下一頁的機率。</p>
  <button id="makeBtn" class="primary">產生 Word 文件</button>
  <div id="makeStatus" class="status">⚪ 等待轉換</div>
  <progress id="progress" max="100" value="0"></progress>
@@ -133,8 +134,8 @@ const {
  Document,Packer,Paragraph,ImageRun,PageBreak,AlignmentType,
  Footer,TextRun,PageNumber
 }=window.docx;
-const $=id=>document.getElementById(id);
 
+const $=id=>document.getElementById(id);
 let images=[];
 let previewImages=null;
 let docBlob=null;
@@ -369,6 +370,7 @@ async function createImageRun(im,maxW,maxH){
   transformation:{width,height}
  });
 }
+
 $("makeBtn").onclick=async()=>{
  if(!images.length){status("makeStatus","🔴 請先上傳圖片","err");return}
  if(previewVersion!==listVersion||!previewImages){
@@ -376,6 +378,7 @@ $("makeBtn").onclick=async()=>{
   $("updatePreviewBtn").focus();
   return;
  }
+
  const version=++buildVersion;
  $("makeBtn").disabled=true;
  $("downloadBtn").disabled=true;
@@ -383,52 +386,83 @@ $("makeBtn").onclick=async()=>{
  $("result").style.display="none";
  $("progress").value=0;
  status("makeStatus","🟡 正在建立 Word，請稍候…","busy");
+
  try{
   const groups=makeGroups(previewImages);
-  const children=[];
   const pageWidth=11906;
   const pageHeight=16838;
-  const margin=397; // 約 0.7 公分，保留印表機安全邊界
-  const usableWidth=pageWidth-2*margin;
-  const usableHeight=pageHeight-2*margin;
-  const oneImageMaxHeight=usableHeight-500;
-  const twoImageMaxHeight=Math.floor((usableHeight-700)/2);
+
+  // Word 使用 twips；約 0.7 cm 左右邊界。
+  const marginLeft=397;
+  const marginRight=397;
+
+  // 預留較大的下邊界給 30 pt 頁碼及一般印表機安全範圍。
+  const marginTop=397;
+  const marginBottom=1100;
+
+  const usableWidth=pageWidth-marginLeft-marginRight;
+  const usableHeight=pageHeight-marginTop-marginBottom;
+
+  // 30 pt 頁碼較大，額外保留頁尾、段落間距及換頁安全空間。
+  const safetyGap=900;
+  const twoImageGap=450;
+
+  // Word 圖片轉換尺寸用像素；15 twips 約等於 1 px。
+  const maxWidthPx=usableWidth/15;
+  const oneImageMaxHeightPx=(usableHeight-safetyGap)/15;
+  const twoImageMaxHeightPx=(usableHeight-twoImageGap-safetyGap)/30;
+
+  const children=[];
 
   for(let p=0;p<groups.length;p++){
-   if(p>0)children.push(new Paragraph({children:[new PageBreak()]}));
+   if(p>0){
+    children.push(new Paragraph({
+     children:[new PageBreak()],
+     spacing:{before:0,after:0}
+    }));
+   }
+
    const group=groups[p];
-   const maxH=group.length===1?oneImageMaxHeight:twoImageMaxHeight;
+   const maxH=group.length===1?oneImageMaxHeightPx:twoImageMaxHeightPx;
 
    for(let j=0;j<group.length;j++){
-    const run=await createImageRun(group[j],usableWidth/15,maxH/15);
+    const run=await createImageRun(group[j],maxWidthPx,maxH);
+
+    // 每張圖片獨立置中段落，避免圖片被拆開。
     children.push(new Paragraph({
      children:[run],
      alignment:AlignmentType.CENTER,
-     spacing:{before:0,after:0,line:240}
+     spacing:{before:0,after:0,line:240},
+     keepLines:true,
+     keepNext:j===0&&group.length===2
     }));
+
+    // 兩張圖片之間保留一點間距，但不加入額外的大段文字。
     if(group.length===2&&j===0){
      children.push(new Paragraph({
-      text:" ",
+      children:[new TextRun({text:" ",size:2})],
       alignment:AlignmentType.CENTER,
-      spacing:{before:0,after:0,line:300}
+      spacing:{before:0,after:0,line:120}
      }));
     }
    }
+
    $("progress").value=5+Math.round((p+1)/groups.length*80);
   }
+
   if(version!==buildVersion)return;
 
-  // Word 動態頁碼欄位：列印或重新分頁時自動更新頁碼
+  // 每頁右下角顯示動態頁碼，字體 30 pt。
   const pageFooter=new Footer({
    children:[
     new Paragraph({
      alignment:AlignmentType.RIGHT,
+     spacing:{before:0,after:0,line:360},
      children:[
-      new TextRun("第 "),
-      new TextRun({children:[PageNumber.CURRENT]}),
-      new TextRun(" 頁")
-     ],
-     spacing:{before:0,after:0}
+      new TextRun({text:"第 ",size:60,font:"Arial"}),
+      new TextRun({children:[PageNumber.CURRENT],size:60,font:"Arial"}),
+      new TextRun({text:" 頁",size:60,font:"Arial"})
+     ]
     })
    ]
   });
@@ -438,23 +472,32 @@ $("makeBtn").onclick=async()=>{
     properties:{
      page:{
       size:{width:pageWidth,height:pageHeight},
-      margin:{top:margin,bottom:margin,left:margin,right:margin}
+      margin:{
+       top:marginTop,
+       bottom:marginBottom,
+       left:marginLeft,
+       right:marginRight,
+       footer:400
+      }
      }
     },
     footers:{default:pageFooter},
     children
    }]
   });
+
   docBlob=await Packer.toBlob(doc);
   if(version!==buildVersion){docBlob=null;return}
+
   $("progress").value=100;
   $("result").style.display="block";
   $("result").innerHTML="<b>🟢 Word 文件已建立</b><br>圖片："+previewImages.length+
-   " 張<br>預計頁數："+groups.length+" 頁<br>格式：DOCX<br>已加入自動頁碼";
+   " 張<br>預計頁數："+groups.length+" 頁<br>格式：DOCX<br>每頁右下角頁碼：30 pt";
   $("downloadArea").style.display="block";
   $("downloadBtn").disabled=false;
   status("makeStatus","🟢 Word 製作完成，可以設定檔名下載","ok");
   status("downloadStatus","⚪ 請輸入檔名後下載");
+
  }catch(e){
   console.error(e);
   docBlob=null;
@@ -464,16 +507,20 @@ $("makeBtn").onclick=async()=>{
   $("makeBtn").disabled=false;
  }
 };
+
 $("downloadBtn").onclick=()=>{
  if(!docBlob){status("downloadStatus","🔴 請先產生 Word","err");return}
+
  let name=$("filename").value.trim();
  if(!name){
   status("downloadStatus","🔴 請輸入檔案名稱","err");
   $("filename").focus();
   return;
  }
+
  name=name.replace(/\.docx$/i,"").replace(/[<>:"/\\|?*\x00-\x1F]/g,"_").trim();
  if(!name){status("downloadStatus","🔴 檔案名稱無效","err");return}
+
  try{
   status("downloadStatus","🟡 正在準備下載…","busy");
   const url=URL.createObjectURL(docBlob);
